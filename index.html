@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KinkDeck — Swipe Your Kink Type</title>
+<style>
+  :root{
+    --bg1:#fff3ec; --bg2:#ffe6f2; --bg3:#eef0ff;
+    --ink:#2b2440; --ink-soft:#6b6480;
+    --card:#ffffff;
+    --coral:#ff5d73; --violet:#7c5cff; --mint:#12c9a0; --sun:#ffc93c;
+    --shadow:0 18px 45px rgba(80,40,120,.18);
+    --radius:26px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+    background-attachment:fixed;
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;min-height:100dvh;overflow-x:hidden;
+  }
+  .app{width:100%;max-width:440px;position:relative}
+  .hidden{display:none!important}
+
+  h1{font-size:2.15rem;line-height:1.05;margin:0 0 6px;letter-spacing:-.02em}
+  .grad{background:linear-gradient(90deg,var(--coral),var(--violet) 55%,var(--mint));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .btn{border:0;cursor:pointer;font:inherit;font-weight:700;border-radius:999px;padding:15px 24px;
+    background:linear-gradient(90deg,var(--coral),var(--violet));color:#fff;box-shadow:var(--shadow);
+    transition:transform .12s ease, filter .12s ease;width:100%}
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:#fff;color:var(--ink);box-shadow:0 6px 18px rgba(80,40,120,.12)}
+
+  /* intro */
+  .intro{background:var(--card);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow);text-align:center}
+  .intro p{color:var(--ink-soft);line-height:1.5;margin:14px 0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 24px}
+  .chip{background:#fff;border:1.5px solid #eee;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:600;color:var(--ink-soft);box-shadow:0 4px 10px rgba(80,40,120,.06)}
+  .chip b{color:var(--violet)}
+  .fine{font-size:.74rem;color:var(--ink-soft);margin-top:16px}
+
+  /* deck */
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .count{font-weight:800;font-size:.95rem;color:var(--ink)}
+  .count span{color:var(--ink-soft);font-weight:600}
+  .track{flex:1;height:10px;border-radius:999px;background:#ffffffcc;overflow:hidden;box-shadow:inset 0 1px 3px rgba(80,40,120,.12)}
+  .fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--coral),var(--violet),var(--mint));transition:width .3s ease}
+  .undo{background:none;border:0;cursor:pointer;font-size:1.15rem;padding:4px 6px;color:var(--ink-soft);opacity:.5}
+  .undo.on{opacity:1}
+
+  .stage{position:relative;height:430px;margin-bottom:18px}
+  .card{
+    position:absolute;inset:0;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:28px 26px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+    cursor:grab;user-select:none;touch-action:none;will-change:transform;
+  }
+  .card:active{cursor:grabbing}
+  .card .cat{position:absolute;top:18px;left:0;right:0;text-align:center;font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#cdc6de}
+  .card .emoji{font-size:3.4rem;margin-bottom:16px;filter:drop-shadow(0 6px 12px rgba(80,40,120,.18))}
+  .card .stmt{font-size:1.32rem;font-weight:700;line-height:1.32;letter-spacing:-.01em}
+  .card .num{position:absolute;top:16px;left:20px;font-size:.78rem;font-weight:800;color:#e7e2f0}
+  .stamp{position:absolute;top:44px;font-size:1.05rem;font-weight:900;letter-spacing:.06em;padding:7px 14px;border-radius:12px;border:3px solid;opacity:0;transform:rotate(-12deg)}
+  .stamp.no{left:20px;color:var(--coral);border-color:var(--coral)}
+  .stamp.yes{right:20px;color:var(--mint);border-color:var(--mint)}
+  .stamp.cur{left:50%;top:auto;bottom:26px;transform:translateX(-50%) rotate(0);color:var(--violet);border-color:var(--violet)}
+
+  .actions{display:flex;gap:14px;justify-content:center;align-items:center}
+  .fab{width:62px;height:62px;border-radius:50%;border:0;cursor:pointer;font-size:1.5rem;background:#fff;box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;transition:transform .12s ease}
+  .fab:active{transform:scale(.9)}
+  .fab.no{color:var(--coral)} .fab.cur{color:var(--violet);width:54px;height:54px;font-size:1.25rem} .fab.yes{color:var(--mint)}
+  .fab.no:hover{background:#fff0f2}.fab.cur:hover{background:#f3f0ff}.fab.yes:hover{background:#e9fbf6}
+  .legend{display:flex;justify-content:space-between;margin-top:12px;font-size:.72rem;color:var(--ink-soft);font-weight:600}
+
+  /* results */
+  .results{background:var(--card);border-radius:var(--radius);padding:26px 24px;box-shadow:var(--shadow)}
+  .results h2{margin:0;font-size:1.5rem;text-align:center}
+  .headline{text-align:center;margin:4px 0 8px;color:var(--ink-soft);font-weight:600}
+  .headline b{color:var(--violet);font-size:1.15rem}
+  .hint{text-align:center;font-size:.76rem;color:var(--ink-soft);margin:0 0 16px}
+  .item{border-bottom:1px solid #f0edf7}
+  .row{display:flex;align-items:center;gap:11px;padding:12px 4px;cursor:pointer;background:none;border:0;width:100%;font:inherit;text-align:left}
+  .row .emo{font-size:1.25rem;width:26px;text-align:center;flex-shrink:0}
+  .row .rlabel{width:104px;font-weight:700;font-size:.86rem;flex-shrink:0}
+  .row .rlabel small{display:block;font-weight:600;color:var(--ink-soft);font-size:.66rem}
+  .bar{flex:1;height:14px;border-radius:999px;background:#f1eef8;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .pct{width:38px;text-align:right;font-weight:800;font-size:.82rem}
+  .chev{width:14px;flex-shrink:0;color:#c2bad4;transition:transform .25s ease;font-size:.8rem}
+  .item.open .chev{transform:rotate(90deg)}
+  .panel{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .panel p{margin:0;padding:2px 6px 16px 32px;font-size:.85rem;line-height:1.5;color:var(--ink-soft)}
+  .panel .safe{display:block;margin-top:8px;color:var(--violet);font-weight:600;font-size:.8rem}
+  .res-actions{display:flex;gap:12px;margin-top:22px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:11px 20px;border-radius:999px;font-weight:600;font-size:.85rem;opacity:0;transition:all .3s ease;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- INTRO -->
+  <section id="intro" class="intro">
+    <div style="font-size:3rem;margin-bottom:6px">🃏</div>
+    <h1><span class="grad">KinkDeck</span></h1>
+    <p>Swipe or click to answer how you feel about each kink. Swipe right for "Into it," up for "Curious," and left for "Not for me."</p>
+    <div class="chips">
+      <div class="chip">👉 <b>Into it</b></div>
+      <div class="chip">👆 <b>Curious</b></div>
+      <div class="chip">👈 <b>Not for me</b></div>
+    </div>
+    <button class="btn" id="startBtn">Shuffle & start →</button>
+    <p class="fine">This website is completely anonymous and just for fun. Always practice consent and good communication before trying out any kink in real life.</p>
+  </section>
+
+  <!-- DECK -->
+  <section id="deck" class="hidden">
+    <div class="topbar">
+      <div class="count"><span id="done">0</span>/<span id="total">0</span></div>
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <button class="undo" id="undoBtn" title="Undo">↺</button>
+    </div>
+    <div class="stage" id="stage"></div>
+    <div class="actions">
+      <button class="fab no"  id="bNo"  title="Not for me (←)">✕</button>
+      <button class="fab cur" id="bCur" title="Curious (↑)">★</button>
+      <button class="fab yes" id="bYes" title="Into it (→)">♥</button>
+    </div>
+    <div class="legend"><span>Not for me</span><span>Curious</span><span>Into it</span></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="results hidden">
+    <div style="font-size:2.6rem;text-align:center">✨</div>
+    <h2>Your KinkDeck</h2>
+    <p class="headline" id="headline"></p>
+    <p class="hint">👇 Tap any kink to learn more</p>
+    <div id="bars"></div>
+    <div class="res-actions">
+      <button class="btn" id="retakeBtn">Retake</button>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ---------- 10 CATEGORIES × 2 ITEMS = 20 ---------- */
+const CATS = {
+  "Dominance":     {e:"👑", side:"t", desc:"Taking the leading role — setting the pace, giving direction, and holding responsibility in a scene. Healthy dominance is about care and control, not just power.", safe:"A good dominant looks after their partner's limits and handles aftercare."},
+  "Submission":    {e:"🙇", side:"b", desc:"Finding pleasure in yielding control to a trusted partner. Submission is an active, powerful choice, not passivity.", safe:"A sub sets the limits and can stop the scene at any time with a safeword."},
+  "Bondage":       {e:"🪢", side:"n", desc:"Restricting movement for erotic effect — rope, cuffs, tape, or simply being held down. Start simple and communicate constantly.", safe:"Keep safety shears nearby, check circulation often, and never leave a bound partner alone."},
+  "Sadism":        {e:"🔥", side:"t", desc:"Enjoying giving intensity — impact, sensation, or edge play — to a willing partner. It's a negotiated exchange, not cruelty.", safe:"Agree on limits and a safeword in advance, and follow up with attentive aftercare."},
+  "Masochism":     {e:"💥", side:"b", desc:"Finding pleasure in receiving intense sensation or pain. The appeal is often the endorphin rush and headspace ('subspace').", safe:"A safeword and a checked-in partner keep it in the sweet spot."},
+  "Degradation":   {e:"🗯️", side:"n", desc:"Erotic humiliation — dirty talk, name-calling, or playful debasement between partners who've agreed it's hot.", safe:"It only works on trust; balance it with praise and aftercare so no one leaves feeling actually small."},
+  "Cuckolding":    {e:"💌", side:"n", desc:"Arousal from a partner being intimate with someone else, often while you watch or know about it. It blends jealousy and desire ('compersion').", safe:"Clear rules, radical honesty, and STI safety are essential for everyone involved."},
+  "Voyeurism":     {e:"👀", side:"n", desc:"Being turned on by watching others be intimate. The thrill is in observing.", safe:"Ethical voyeurism means everyone being watched has enthusiastically agreed — never anyone unaware."},
+  "Exhibitionism": {e:"🎭", side:"n", desc:"The thrill of being seen — performing or being intimate in front of a consenting audience.", safe:"The excitement should come from a willing viewer, never an unsuspecting one."},
+  "Cross-dressing":{e:"👗", side:"n", desc:"Wearing clothing and presentation associated with another gender, for self-expression or arousal. It's about play and identity, and is separate from orientation.", safe:"There's no 'right' way to do it — it can be private, playful, or a full look."}
+};
+
+const ITEMS = [
+  {c:"Dominance",     e:"👑", x:"Taking charge and calling the shots during intimacy turns me on."},
+  {c:"Dominance",     e:"🧭", x:"I feel most myself when I'm the one directing how a scene unfolds."},
+  {c:"Submission",    e:"🙇", x:"I love handing over control and being told what to do."},
+  {c:"Submission",    e:"🌙", x:"There's real relief in fully surrendering to a partner I trust."},
+  {c:"Bondage",       e:"🪢", x:"Being tied up — or tying someone up — sounds thrilling to me."},
+  {c:"Bondage",       e:"⛓️", x:"The idea of restraint (rope, cuffs, being held in place) is a turn-on."},
+  {c:"Sadism",        e:"🔥", x:"Giving a partner intense sensations, even a little pain, excites me."},
+  {c:"Sadism",        e:"⚡", x:"Seeing a willing partner squirm with pleasure-pain is a rush."},
+  {c:"Masochism",     e:"💥", x:"A bit of pain can feel amazing when I'm turned on."},
+  {c:"Masochism",     e:"🌶️", x:"Sensations most people call 'too intense' can push me over the edge."},
+  {c:"Degradation",   e:"🗯️", x:"Being talked down to — or talking down to a partner — can be hot."},
+  {c:"Degradation",   e:"🙊", x:"Playful humiliation with someone I trust flips a switch for me."},
+  {c:"Cuckolding",    e:"💌", x:"The thought of my partner being with someone else — while I watch or know — excites me."},
+  {c:"Cuckolding",    e:"😳", x:"A mix of jealousy and arousal at seeing my partner enjoy another turns me on."},
+  {c:"Voyeurism",     e:"👀", x:"Watching consenting others be intimate is a turn-on for me."},
+  {c:"Voyeurism",     e:"🔭", x:"I'd enjoy being the one who watches while others put on a show."},
+  {c:"Exhibitionism", e:"🎭", x:"The idea of being watched during intimacy excites me."},
+  {c:"Exhibitionism", e:"📸", x:"Showing off for the right, willing audience makes things hotter."},
+  {c:"Cross-dressing",e:"👗", x:"Dressing in clothing associated with another gender is a turn-on for me."},
+  {c:"Cross-dressing",e:"💄", x:"Playing with a different presentation through clothes and makeup appeals to me."}
+];
+
+const SIDE = {t:"top / giving", b:"bottom / receiving", n:"style"};
+const VAL = {yes:1, cur:0.5, no:0};
+const PER_CAT = 2; // items per category → max score 2.0
+
+/* random shuffle, then space out same-category cards so no two sit back to back */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function spread(a){
+  for(let i=1;i<a.length;i++){
+    if(a[i].c===a[i-1].c){
+      for(let k=i+1;k<a.length;k++){
+        if(a[k].c!==a[i-1].c && (k+1>=a.length || a[k+1].c!==a[i].c)){ [a[i],a[k]]=[a[k],a[i]]; break; }
+      }
+    }
+  }
+  return a;
+}
+
+let deck=[], idx=0, history=[], scores={}, busy=false, frontCard=null;
+const $=id=>document.getElementById(id);
+const stage=$("stage");
+
+function start(){
+  // interleave so two cards of the same category aren't back to back
+  deck = spread(shuffle(ITEMS.slice()));
+  idx=0; history=[]; busy=false;
+  scores={}; Object.keys(CATS).forEach(c=>scores[c]=0);
+  $("total").textContent=deck.length;
+  $("intro").classList.add("hidden");
+  $("results").classList.add("hidden");
+  $("deck").classList.remove("hidden");
+  render();
+}
+
+function render(){
+  stage.innerHTML=""; frontCard=null;
+  updateProgress();
+  if(idx>=deck.length){ finish(); return; }
+  const upto=Math.min(idx+3, deck.length);
+  for(let i=upto-1;i>=idx;i--){
+    const it=deck[i], depth=i-idx;
+    const c=document.createElement("div");
+    c.className="card"+(depth===0?" front":"");
+    c.style.zIndex=10-depth;
+    c.style.transform=`translateY(${depth*10}px) scale(${1-depth*0.04})`;
+    c.innerHTML=`<div class="num">${i+1}/${deck.length}</div><div class="cat">${it.c}</div>
+      <div class="stamp no">NOPE</div><div class="stamp yes">INTO IT</div><div class="stamp cur">CURIOUS</div>
+      <div class="emoji">${it.e}</div><div class="stmt">${it.x}</div>`;
+    if(depth===0){ frontCard=c; attachDrag(c); }
+    stage.appendChild(c);
+  }
+}
+
+function updateProgress(){
+  $("done").textContent=Math.min(idx,deck.length);
+  $("fill").style.width=(idx/deck.length*100)+"%";
+  $("undoBtn").classList.toggle("on", history.length>0);
+}
+
+function choose(kind){
+  if(busy || idx>=deck.length) return;
+  busy=true;
+  const it=deck[idx];
+  scores[it.c]+=VAL[kind];
+  history.push({c:it.c, v:VAL[kind]});
+  flyOut(kind);
+}
+
+function flyOut(kind){
+  const top=frontCard;
+  if(!top){ idx++; busy=false; render(); return; }
+  const dir = kind==="yes"?1 : kind==="no"?-1 : 0;
+  const y = kind==="cur"? -700 : 0;
+  top.style.transition="transform .35s ease, opacity .35s ease";
+  top.style.transform=`translate(${dir*600}px, ${y}px) rotate(${dir*22}deg)`;
+  top.style.opacity="0";
+  setTimeout(()=>{ idx++; busy=false; render(); }, 230);
+}
+
+function undo(){
+  if(busy || !history.length) return;
+  const last=history.pop();
+  scores[last.c]-=last.v;
+  idx=Math.max(0,idx-1);
+  render();
+}
+
+/* drag / swipe */
+function attachDrag(card){
+  let sx=0,sy=0,dx=0,dy=0,drag=false;
+  const sNo=card.querySelector(".stamp.no"), sYes=card.querySelector(".stamp.yes"), sCur=card.querySelector(".stamp.cur");
+  const move=e=>{
+    if(!drag)return;
+    const p=pt(e);dx=p.x-sx;dy=p.y-sy;
+    card.style.transform=`translate(${dx}px, ${dy}px) rotate(${dx*0.06}deg)`;
+    const up = dy<-60 && Math.abs(dy)>Math.abs(dx);
+    sYes.style.opacity= !up&&dx>20 ? Math.min(1,dx/120):0;
+    sNo.style.opacity = !up&&dx<-20? Math.min(1,-dx/120):0;
+    sCur.style.opacity= up? Math.min(1,-dy/120):0;
+  };
+  const up=e=>{
+    if(!drag)return;drag=false;
+    const isUp = dy<-90 && Math.abs(dy)>Math.abs(dx);
+    if(isUp) choose("cur");
+    else if(dx>110) choose("yes");
+    else if(dx<-110) choose("no");
+    else { card.style.transition="transform .25s ease"; card.style.transform=""; sYes.style.opacity=sNo.style.opacity=sCur.style.opacity=0; }
+    dx=dy=0;
+  };
+  card.addEventListener("pointerdown",e=>{drag=true;const p=pt(e);sx=p.x;sy=p.y;card.style.transition="none";card.setPointerCapture(e.pointerId);});
+  card.addEventListener("pointermove",move);
+  card.addEventListener("pointerup",up);
+  card.addEventListener("pointercancel",up);
+}
+const pt=e=>({x:e.clientX,y:e.clientY});
+
+/* results */
+const PALETTE=["#ff5d73","#7c5cff","#12c9a0","#ffc93c","#ff8a5c","#5c9cff","#e05cff","#2bd9c0","#ff6fae","#8a7dff"];
+function finish(){
+  $("deck").classList.add("hidden");
+  $("results").classList.remove("hidden");
+  const ranked=Object.keys(scores).map(c=>({
+    c, pct:Math.round(scores[c]/PER_CAT*100), side:CATS[c].side
+  })).sort((a,b)=>b.pct-a.pct);
+
+  $("headline").innerHTML=`Your full 10-kink breakdown`;
+
+  const bars=$("bars"); bars.innerHTML="";
+  ranked.forEach((r,i)=>{
+    const item=document.createElement("div"); item.className="item";
+    item.innerHTML=`
+      <button class="row" aria-expanded="false">
+        <span class="emo">${CATS[r.c].e}</span>
+        <span class="rlabel">${r.c}<small>${SIDE[r.side]}</small></span>
+        <span class="bar"><i style="background:${PALETTE[i%PALETTE.length]}"></i></span>
+        <span class="pct">${r.pct}%</span>
+        <span class="chev">▶</span>
+      </button>
+      <div class="panel"><p>${CATS[r.c].desc}<span class="safe">✔ ${CATS[r.c].safe}</span></p></div>`;
+    const btn=item.querySelector(".row"), panel=item.querySelector(".panel");
+    btn.addEventListener("click",()=>{
+      const open=item.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open);
+      panel.style.maxHeight = open ? panel.scrollHeight+"px" : 0;
+    });
+    bars.appendChild(item);
+    requestAnimationFrame(()=>{setTimeout(()=>{item.querySelector("i").style.width=r.pct+"%";}, 60+i*55);});
+  });
+}
+
+/* wiring */
+$("startBtn").onclick=start;
+$("retakeBtn").onclick=()=>{ $("results").classList.add("hidden"); start(); };
+$("bNo").onclick=()=>choose("no");
+$("bYes").onclick=()=>choose("yes");
+$("bCur").onclick=()=>choose("cur");
+$("undoBtn").onclick=undo;
+document.addEventListener("keydown",e=>{
+  if($("deck").classList.contains("hidden"))return;
+  if(e.key==="ArrowRight")choose("yes");
+  else if(e.key==="ArrowLeft")choose("no");
+  else if(e.key==="ArrowUp")choose("cur");
+  else if(e.key==="Backspace"){e.preventDefault();undo();}
+});
+</script>
+</body>
+</html>
